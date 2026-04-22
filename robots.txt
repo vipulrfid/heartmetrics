@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /
+
+# Prototype — not ready for indexing yet.
+# When you're ready to let search engines in, change to:
+#   User-agent: *
+#   Allow: /
