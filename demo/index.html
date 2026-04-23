@@ -1175,13 +1175,13 @@ const Sidebar = ({ tab, setTab, mobileOpen, setMobileOpen }) => {
       {mobileOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setMobileOpen(false)}/>}
       <aside className={`sidebar-base ${mobileOpen ? 'sidebar-open' : 'sidebar-closed'} hm-dark text-white w-60 md:w-64 shrink-0 flex flex-col z-40`}>
         <div className="pl-2 pr-2 py-3 border-b border-white/10 flex items-center justify-between gap-1">
-          <div className="flex items-center gap-1 min-w-0">
+          <a href="/" className="flex items-center gap-1 min-w-0 hover:opacity-90 transition" title="Back to HEART Metrics home" style={{ textDecoration:'none', color:'inherit' }}>
             <div className="shrink-0"><HeartLogo size={70}/></div>
             <div className="min-w-0">
               <div className="serif font-bold text-lg leading-tight whitespace-nowrap">HEART Metrics</div>
               <div className="text-[11px] text-white/60 leading-tight mt-0.5">Work Wellbeing Platform</div>
             </div>
-          </div>
+          </a>
           <button onClick={()=>setMobileOpen(false)} className="md:hidden text-white/70 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0" aria-label="Close menu">×</button>
         </div>
         <nav className="flex-1 py-4 overflow-y-auto">
@@ -1221,9 +1221,9 @@ const TopBar = ({ tabLabel, onOpenMenu }) => (
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <div className="md:hidden shrink-0" style={{ background:'var(--hm-dark)', borderRadius:8, padding:5 }}>
+        <a href="/" className="md:hidden shrink-0" title="Back to HEART Metrics home" style={{ background:'var(--hm-dark)', borderRadius:8, padding:5, textDecoration:'none' }}>
           <HeartLogo size={32}/>
-        </div>
+        </a>
         <div className="min-w-0">
           <div className="text-[11px] text-gray-400 uppercase tracking-wide hidden md:block">Manager View</div>
           <div className="serif text-base md:text-lg font-semibold hm-dark-text truncate">{tabLabel}</div>
@@ -1303,4 +1303,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
-
