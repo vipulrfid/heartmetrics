@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0C4A4E"/>
-  <path d="M32 50c-1 0-2-0.4-2.7-1.1l-13.5-13.2c-4.5-4.4-4.5-11.5 0-15.9 4.3-4.2 11.1-4.3 15.5-0.3l0.7 0.7 0.7-0.7c4.4-4 11.2-3.9 15.5 0.3 4.5 4.4 4.5 11.5 0 15.9L34.7 48.9C34 49.6 33 50 32 50z" fill="#00B8A0"/>
+<svg viewBox="0 0 380 380" xmlns="http://www.w3.org/2000/svg">
+  <rect width="380" height="380" rx="80" fill="#0C4A4E"/>
+  <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+    transform="translate(190,190) scale(3.0) translate(-25,-23)" fill="#00B8A0"/>
+  <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+    transform="translate(190,190) scale(1.75) translate(-25,-23)" fill="#FFB347" stroke="white" stroke-width="6" paint-order="stroke fill"/>
+  <polyline points="115,190 124,190 127,181 131,200 135,177 139,190 150,190"
+    fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="230,190 235,190 239,163 244,218 249,158 254,190 265,190"
+    fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HEART Metrics — AI that helps managers retain top talent</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<meta name="description" content="HEART Metrics turns everyday employee signals into early burnout warnings — so managers can intervene before good people leave." />
+<meta property="og:title" content="HEART Metrics — AI that helps managers retain top talent" />
+<meta property="og:description" content="Turn employee signals into manager intelligence — before good people leave." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://heartmetrics.us" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --hm-dark:   #0C4A4E;
+    --hm-teal:   #00B8A0;
+    --hm-amber:  #FFB347;
+    --hm-red:    #DC2626;
+    --hm-green:  #16A34A;
+    --hm-bg:     #F5F8F8;
+    --hm-border: #E3EAEA;
+    --hm-ink:    #0F2A2C;
+  }
+  html, body { background: #FFFFFF; color: var(--hm-ink); }
+  body {
+    font-family: "Calibri", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-serif, h1, h2, h3, .serif { font-family: Georgia, "Times New Roman", Cambria, serif; }
+  .hm-dark-bg  { background-color: var(--hm-dark); }
+  .hm-teal-bg  { background-color: var(--hm-teal); }
+  .hm-amber-bg { background-color: var(--hm-amber); }
+  .hm-teal-text { color: var(--hm-teal); }
+  .hm-dark-text { color: var(--hm-dark); }
+  .btn-primary { background: var(--hm-teal); color: #fff; }
+  .btn-primary:hover { background: #00a18b; }
+  .btn-secondary { background: transparent; color: var(--hm-dark); border: 1.5px solid var(--hm-dark); }
+  .btn-secondary:hover { background: var(--hm-dark); color: #fff; }
+  .btn-outline-white { color: #fff; border: 1.5px solid rgba(255,255,255,0.6); }
+  .btn-outline-white:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+  /* Hero subtle background */
+  .hero-grad {
+    background:
+      radial-gradient(circle at 85% 10%, rgba(255,179,71,0.10) 0%, transparent 40%),
+      radial-gradient(circle at 15% 80%, rgba(0,184,160,0.10) 0%, transparent 40%),
+      #FCFCFA;
+  }
+  .section-divider { border-top: 1px solid var(--hm-border); }
+  .fade-in { animation: fadeIn .45s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .card-shadow { box-shadow: 0 1px 2px rgba(12,74,78,.04), 0 4px 16px rgba(12,74,78,.06); }
+  .card-shadow-lg { box-shadow: 0 10px 30px rgba(12,74,78,.10), 0 4px 10px rgba(12,74,78,.06); }
+  .feature-icon-bg { background: rgba(0,184,160,0.10); }
+  a { color: var(--hm-teal); }
+  a:hover { color: #00a18b; }
+  .hr-soft { border-color: var(--hm-border); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ============================================================
+// BRAND LOGO
+// ============================================================
+const HeartLogo = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="108 108 168 168" xmlns="http://www.w3.org/2000/svg" style={{ display:'block' }}>
+    <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+      transform="translate(190,190) scale(3.0) translate(-25,-23)" fill="#00B8A0"/>
+    <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+      transform="translate(190,190) scale(1.75) translate(-25,-23)" fill="#FFB347" stroke="white" strokeWidth="6" paintOrder="stroke fill"/>
+    <polyline points="115,190 124,190 127,181 131,200 135,177 139,190 150,190"
+      fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <polyline points="230,190 235,190 239,163 244,218 249,158 254,190 265,190"
+      fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DEMO_URL = "/demo/";
+const MAIL_URL = "mailto:vsnavale@asu.edu?subject=HEART%20Metrics%20-%20Book%20a%20call";
+
+// ============================================================
+// NAVBAR
+// ============================================================
+const Navbar = () => {
+  const [open, setOpen] = useState(false);
+  const links = [
+    { label: 'Problem',      href: '#problem' },
+    { label: 'Solution',     href: '#solution' },
+    { label: 'Validation',   href: '#validation' },
+    { label: 'How it works', href: '#how-it-works' },
+  ];
+  return (
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
+      <div className="max-w-6xl mx-auto px-5 md:px-8 py-3 flex items-center justify-between gap-4">
+        <a href="/" className="flex items-center gap-2 shrink-0" style={{ textDecoration:'none' }}>
+          <div style={{ background:'var(--hm-dark)', borderRadius:8, padding:4 }}>
+            <HeartLogo size={32}/>
+          </div>
+          <div className="leading-tight">
+            <div className="serif font-bold hm-dark-text text-base md:text-lg">HEART Metrics</div>
+            <div className="text-[10px] text-gray-500 hidden md:block">Work Wellbeing Platform</div>
+          </div>
+        </a>
+        <nav className="hidden md:flex items-center gap-6 text-sm">
+          {links.map(l => (
+            <a key={l.href} href={l.href} className="hm-dark-text hover:opacity-70" style={{ textDecoration:'none' }}>{l.label}</a>
+          ))}
+        </nav>
+        <div className="hidden md:flex items-center gap-2">
+          <a href={DEMO_URL} className="btn-secondary text-sm font-semibold px-4 py-2 rounded-lg transition" style={{ textDecoration:'none' }}>Live Demo</a>
+          <a href={MAIL_URL} className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg transition" style={{ textDecoration:'none' }}>Book a call</a>
+        </div>
+        <button onClick={()=>setOpen(!open)} className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0C4A4E" strokeWidth="2" strokeLinecap="round">
+            {open ? <><line x1="5" y1="5" x2="19" y2="19"/><line x1="5" y1="19" x2="19" y2="5"/></> :
+                    <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>}
+          </svg>
+        </button>
+      </div>
+      {open && (
+        <div className="md:hidden border-t border-gray-100 bg-white">
+          <div className="max-w-6xl mx-auto px-5 py-3 flex flex-col gap-3">
+            {links.map(l => (
+              <a key={l.href} href={l.href} onClick={()=>setOpen(false)} className="hm-dark-text py-2" style={{ textDecoration:'none' }}>{l.label}</a>
+            ))}
+            <div className="flex gap-2 pt-2 border-t border-gray-100 mt-1">
+              <a href={DEMO_URL} className="btn-secondary flex-1 text-sm font-semibold text-center px-4 py-2 rounded-lg" style={{ textDecoration:'none' }}>Live Demo</a>
+              <a href={MAIL_URL} className="btn-primary flex-1 text-sm font-semibold text-center px-4 py-2 rounded-lg" style={{ textDecoration:'none' }}>Book a call</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};
+
+// ============================================================
+// SECTION 1: HERO
+// ============================================================
+const Hero = () => (
+  <section className="hero-grad">
+    <div className="max-w-6xl mx-auto px-5 md:px-8 py-16 md:py-24">
+      <div className="grid md:grid-cols-2 gap-10 md:gap-12 items-center">
+        <div className="fade-in">
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-5" style={{ background:'rgba(0,184,160,0.12)', color:'var(--hm-dark)' }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background:'var(--hm-teal)' }}></span>
+            Pilot launching June 2026 · Limited spots
+          </div>
+          <h1 className="serif font-bold hm-dark-text text-4xl md:text-5xl lg:text-6xl leading-[1.08] tracking-tight">
+            AI that helps managers <span className="hm-teal-text">retain top talent</span>.
+          </h1>
+          <p className="mt-5 text-lg md:text-xl text-gray-700 leading-relaxed">
+            HEART Metrics turns everyday employee signals — workload, recognition, feedback, growth — into early warnings, so managers can intervene <em>before</em> good people leave.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <a href={DEMO_URL} className="btn-primary text-center text-sm md:text-base font-semibold px-6 py-3.5 rounded-lg transition inline-flex items-center justify-center gap-2" style={{ textDecoration:'none' }}>
+              See the live demo
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href={MAIL_URL} className="btn-secondary text-center text-sm md:text-base font-semibold px-6 py-3.5 rounded-lg transition" style={{ textDecoration:'none' }}>
+              Book a call with the founder
+            </a>
+          </div>
+          <div className="mt-8 flex items-center gap-6 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ background:'var(--hm-green)' }}></span>
+              Read-only from your work tools
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ background:'var(--hm-green)' }}></span>
+              Private by design
+            </div>
+          </div>
+        </div>
+        <div className="fade-in flex justify-center md:justify-end">
+          <div className="relative">
+            <div className="absolute -inset-8 rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,184,160,0.18) 0%, transparent 60%)' }}></div>
+            <div className="relative rounded-3xl p-8 md:p-10" style={{ background:'var(--hm-dark)' }}>
+              <HeartLogo size={240}/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+// ============================================================
+// SECTION 2: THE PROBLEM
+// ============================================================
+const Problem = () => {
+  const stats = [
+    { pct:'79%',   label:'cite lack of recognition as a reason for quitting', src:'O.C. Tanner, 2026' },
+    { pct:'$900B', label:'annual U.S. turnover cost',                         src:'Work Institute, 2024' },
+    { pct:'34%',   label:'considered quitting because of burnout',            src:'Nat. Alliance of Mental Illness, 2024' },
+  ];
+  return (
+    <section id="problem" className="section-divider py-16 md:py-24">
+      <div className="max-w-6xl mx-auto px-5 md:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[.2em] hm-teal-text mb-3">The problem</div>
+          <h2 className="serif font-bold hm-dark-text text-3xl md:text-4xl lg:text-5xl leading-tight">
+            Managers realize there's a problem <em>only after</em> someone quits.
+          </h2>
+          <p className="mt-5 text-lg text-gray-700 leading-relaxed">
+            Broken management practices around workload, recognition, feedback, and growth are costing U.S. companies nearly <strong>a trillion dollars a year</strong>. The signals are there. They're just not reaching the people who can act on them.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
+          {stats.map((s,i)=>(
+            <div key={i} className="rounded-2xl p-8" style={{ background:'#FAFBFB', border:'1px solid var(--hm-border)' }}>
+              <div className="serif font-bold hm-dark-text text-4xl md:text-5xl">{s.pct}</div>
+              <div className="mt-3 text-gray-800 leading-snug">{s.label}</div>
+              <div className="mt-4 text-xs text-gray-500">{s.src}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================================
+// SECTION 3: THE SOLUTION
+// ============================================================
+const Solution = () => {
+  const features = [
+    {
+      title: 'Workload visibility',
+      desc:  'See WIP, meeting load, blocked items, and after-hours work in one Work Wellbeing Index — updated from Jira, Slack, and Outlook signals managers already generate.',
+      icon: (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 2 5-7"/></svg>),
+    },
+    {
+      title: 'AI-powered coaching',
+      desc:  'Drafted recognition messages, structured feedback, and sensitive-conversation scripts — grounded in the specific employee\'s metrics, not generic templates.',
+      icon: (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a4 4 0 01-4 4H8l-5 4V6a4 4 0 014-4h10a4 4 0 014 4z"/><circle cx="9" cy="11" r="1" fill="#00B8A0"/><circle cx="15" cy="11" r="1" fill="#00B8A0"/></svg>),
+    },
+    {
+      title: 'Burnout prediction',
+      desc:  'Early warnings when a high performer is drifting toward exit — with a clear, ranked list of the specific actions that close the gap this sprint.',
+      icon: (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><circle cx="12" cy="14" r="8"/><path d="M12 10v4l3 2"/></svg>),
+    },
+  ];
+  return (
+    <section id="solution" className="section-divider py-16 md:py-24" style={{ background:'var(--hm-bg)' }}>
+      <div className="max-w-6xl mx-auto px-5 md:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[.2em] hm-teal-text mb-3">The solution</div>
+          <h2 className="serif font-bold hm-dark-text text-3xl md:text-4xl lg:text-5xl leading-tight">
+            Turn employee signals into manager intelligence.
+          </h2>
+          <p className="mt-5 text-lg text-gray-700 leading-relaxed">
+            HEART Metrics is a single dashboard that shows every manager <em>who</em> needs attention, <em>why</em>, and <em>what action</em> to take next — without another survey, another meeting, or another form to fill in.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
+          {features.map((f,i)=>(
+            <div key={i} className="bg-white rounded-2xl p-7 card-shadow">
+              <div className="w-12 h-12 rounded-xl feature-icon-bg flex items-center justify-center mb-5">
+                {f.icon}
+              </div>
+              <h3 className="serif font-semibold hm-dark-text text-xl mb-2">{f.title}</h3>
+              <p className="text-gray-700 leading-relaxed text-[15px]">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <a href={DEMO_URL} className="inline-flex items-center gap-2 hm-teal-text font-semibold" style={{ textDecoration:'none' }}>
+            See it in action →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================================
+// SECTION 5: VALIDATION / SOCIAL PROOF
+// ============================================================
+const Validation = () => {
+  const quotes = [
+    {
+      quote: "It's hard to retain the talented folks, but knowing in advance when they may leave gives me time to try my best to keep them.",
+      name:  'Director',
+      org:   'Microsoft',
+    },
+    {
+      quote: "AI insights and coaching will help tremendously — managers don't receive any formal training on how to manage people.",
+      name:  'Sr. Engagement Manager',
+      org:   'Cognizant Business Consulting',
+    },
+    {
+      quote: "Managers can use this as early warning and make contingency plans before a key team member walks out the door.",
+      name:  'Director',
+      org:   'Rhythmflow Solutions',
+    },
+  ];
+  return (
+    <section id="validation" className="section-divider py-16 md:py-24">
+      <div className="max-w-6xl mx-auto px-5 md:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[.2em] hm-teal-text mb-3">Validation</div>
+          <h2 className="serif font-bold hm-dark-text text-3xl md:text-4xl lg:text-5xl leading-tight">
+            Tech managers say early warning will give them control back.
+          </h2>
+          <p className="mt-5 text-lg text-gray-700 leading-relaxed">
+            Internal survey of managers across Silicon Valley, Seattle, NYC, and Bangalore. Conducted 2026.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+          <div className="rounded-2xl p-8 text-white" style={{ background:'var(--hm-dark)' }}>
+            <div className="serif font-bold text-6xl" style={{ color:'var(--hm-amber)' }}>84%</div>
+            <div className="mt-3 text-lg leading-snug">witnessed unexpected resignations in the last 3 years</div>
+          </div>
+          <div className="rounded-2xl p-8 text-white" style={{ background:'var(--hm-dark)' }}>
+            <div className="serif font-bold text-6xl" style={{ color:'var(--hm-amber)' }}>95%</div>
+            <div className="mt-3 text-lg leading-snug">say AI insights will help them manage expectations better</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {quotes.map((q,i)=>(
+            <figure key={i} className="bg-white rounded-2xl p-7 border border-gray-200">
+              <div className="text-3xl leading-none hm-teal-text font-serif">"</div>
+              <blockquote className="mt-2 text-gray-800 text-[15px] leading-relaxed italic">
+                {q.quote}
+              </blockquote>
+              <figcaption className="mt-5 pt-4 border-t hr-soft">
+                <div className="font-semibold hm-dark-text text-sm">{q.name}</div>
+                <div className="text-xs text-gray-500">{q.org}</div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================================
+// SECTION 6: HOW IT WORKS
+// ============================================================
+const HowItWorks = () => {
+  const steps = [
+    {
+      n: '01',
+      title: 'Connect',
+      desc: 'Read-only integrations with the tools your team already uses — Jira, Slack, Outlook, Calendar. No new survey, no new behavior required from employees.',
+    },
+    {
+      n: '02',
+      title: 'Detect',
+      desc: 'Signals flow into a Work Wellbeing Index per employee — calibrated across workload, recognition, feedback, and growth. Updated every sprint.',
+    },
+    {
+      n: '03',
+      title: 'Act',
+      desc: 'Managers see a ranked action queue grounded in their specific team\'s data. AI drafts the recognition note, the feedback outline, the difficult conversation script.',
+    },
+  ];
+  return (
+    <section id="how-it-works" className="section-divider py-16 md:py-24" style={{ background:'var(--hm-bg)' }}>
+      <div className="max-w-6xl mx-auto px-5 md:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[.2em] hm-teal-text mb-3">How it works</div>
+          <h2 className="serif font-bold hm-dark-text text-3xl md:text-4xl lg:text-5xl leading-tight">
+            Connect. Detect. Act.
+          </h2>
+          <p className="mt-5 text-lg text-gray-700 leading-relaxed">
+            Our methodology is grounded in the <a href="https://www.hhs.gov/surgeongeneral/priorities/workplace-well-being/index.html" target="_blank" rel="noopener" className="hm-dark-text underline decoration-2 underline-offset-4" style={{ textDecorationColor:'var(--hm-amber)' }}>U.S. Surgeon General's Framework for Workplace Mental Health &amp; Wellbeing</a> — five essentials that predict engagement, retention, and psychological safety at work.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
+          {steps.map((s,i)=>(
+            <div key={i} className="bg-white rounded-2xl p-7 card-shadow relative">
+              <div className="serif font-bold text-6xl leading-none" style={{ color:'var(--hm-amber)' }}>{s.n}</div>
+              <h3 className="serif font-semibold hm-dark-text text-xl mt-4 mb-2">{s.title}</h3>
+              <p className="text-gray-700 leading-relaxed text-[15px]">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 rounded-2xl p-6 md:p-8" style={{ background:'#fff', border:'1px solid var(--hm-border)' }}>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+            <div className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center" style={{ background:'var(--hm-dark)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFB347" strokeWidth="1.8" strokeLinecap="round"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold hm-dark-text text-lg">Based on the Surgeon General's 5 essentials</div>
+              <div className="text-gray-700 text-[15px] leading-relaxed mt-1">
+                Protection from harm · Connection &amp; community · Work-life harmony · Mattering at work · Opportunity for growth. HEART Metrics operationalizes each one into a measurable team signal.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================================
+// SECTION 8: FINAL CTA
+// ============================================================
+const FinalCTA = () => (
+  <section className="py-16 md:py-24" style={{ background:'var(--hm-dark)' }}>
+    <div className="max-w-4xl mx-auto px-5 md:px-8 text-center">
+      <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-5" style={{ background:'rgba(255,179,71,0.18)', color:'var(--hm-amber)' }}>
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background:'var(--hm-amber)' }}></span>
+        Pilot launching June 2026
+      </div>
+      <h2 className="serif font-bold text-white text-3xl md:text-5xl leading-tight">
+        A Bay Area startup is already live. <br className="hidden md:block"/>
+        <span style={{ color:'var(--hm-amber)' }}>Who wants to be next?</span>
+      </h2>
+      <p className="mt-5 text-lg md:text-xl text-white/80 leading-relaxed max-w-2xl mx-auto">
+        We're selecting 2–3 design partners for the June 2026 cohort. Limited to tech orgs with 15–50 managers.
+      </p>
+      <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
+        <a href={DEMO_URL} className="btn-primary text-sm md:text-base font-semibold px-8 py-4 rounded-lg transition inline-flex items-center justify-center gap-2" style={{ textDecoration:'none' }}>
+          Explore the live demo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href={MAIL_URL} className="btn-outline-white text-sm md:text-base font-semibold px-8 py-4 rounded-lg transition" style={{ textDecoration:'none' }}>
+          Book a call with the founder
+        </a>
+      </div>
+    </div>
+  </section>
+);
+
+// ============================================================
+// SECTION 9: FOOTER
+// ============================================================
+const Footer = () => (
+  <footer className="py-10 md:py-12 bg-white">
+    <div className="max-w-6xl mx-auto px-5 md:px-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+        <div className="md:max-w-sm">
+          <div className="flex items-center gap-2">
+            <div style={{ background:'var(--hm-dark)', borderRadius:8, padding:4 }}>
+              <HeartLogo size={32}/>
+            </div>
+            <div className="leading-tight">
+              <div className="serif font-bold hm-dark-text">HEART Metrics</div>
+              <div className="text-[10px] text-gray-500">Work Wellbeing Platform</div>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+            AI that helps managers retain top talent. Built on the Surgeon General's workplace wellbeing framework.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
+          <div>
+            <div className="font-semibold hm-dark-text mb-3">Product</div>
+            <ul className="space-y-2 text-gray-600">
+              <li><a href={DEMO_URL} style={{ textDecoration:'none' }}>Live demo</a></li>
+              <li><a href="#solution" style={{ textDecoration:'none' }}>How it works</a></li>
+              <li><a href="#validation" style={{ textDecoration:'none' }}>Validation</a></li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-semibold hm-dark-text mb-3">Contact</div>
+            <ul className="space-y-2 text-gray-600">
+              <li><a href={MAIL_URL} style={{ textDecoration:'none' }}>Book a call</a></li>
+              <li><a href="mailto:vsnavale@asu.edu" style={{ textDecoration:'none' }}>vsnavale@asu.edu</a></li>
+            </ul>
+          </div>
+          <div className="col-span-2 md:col-span-1">
+            <div className="font-semibold hm-dark-text mb-3">Legal</div>
+            <ul className="space-y-2 text-gray-600">
+              <li><span className="text-gray-400">Privacy (coming soon)</span></li>
+              <li><span className="text-gray-400">Terms (coming soon)</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div className="mt-10 pt-6 border-t hr-soft flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-gray-500">
+        <div>© 2026 HEART Metrics. Prototype build. Synthetic data in live demo is for illustration only.</div>
+        <div>Built in Phoenix, AZ · Pilot launching June 2026</div>
+      </div>
+    </div>
+  </footer>
+);
+
+// ============================================================
+// APP
+// ============================================================
+const App = () => (
+  <>
+    <Navbar />
+    <Hero />
+    <Problem />
+    <Solution />
+    <Validation />
+    <HowItWorks />
+    <FinalCTA />
+    <Footer />
+  </>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

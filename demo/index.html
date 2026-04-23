@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HEART Metrics — Work Wellbeing Platform</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<meta name="description" content="HEART Metrics turns everyday employee signals into early burnout warnings — so managers can intervene before top talent walks." />
+<meta property="og:title" content="HEART Metrics — Live Prototype" />
+<meta property="og:description" content="AI that helps managers retain top talent. Live prototype." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://heartmetrics.us/demo" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --hm-dark:   #0C4A4E;
+    --hm-teal:   #00B8A0;
+    --hm-amber:  #FFB347;
+    --hm-red:    #DC2626;
+    --hm-green:  #16A34A;
+    --hm-yellow: #EAB308;
+    --hm-bg:     #F5F8F8;
+    --hm-border: #E3EAEA;
+  }
+  html, body { background: var(--hm-bg); }
+  body {
+    font-family: "Calibri", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #1F2937;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-serif, h1, h2, h3, .serif { font-family: Georgia, "Times New Roman", Cambria, serif; }
+  .card { background: #fff; border: 1px solid var(--hm-border); border-radius: 14px; }
+  .card-shadow { box-shadow: 0 1px 2px rgba(12,74,78,.04), 0 2px 8px rgba(12,74,78,.04); }
+  .card-shadow-lg { box-shadow: 0 10px 30px rgba(12,74,78,.10), 0 4px 10px rgba(12,74,78,.06); }
+  .hm-dark { background-color: var(--hm-dark); }
+  .hm-teal { background-color: var(--hm-teal); }
+  .hm-teal-text { color: var(--hm-teal); }
+  .hm-dark-text { color: var(--hm-dark); }
+  .hm-gradient { background: linear-gradient(135deg, #0C4A4E 0%, #00B8A0 100%); }
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #cfdada; border-radius: 4px; }
+  .fade-in { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .tooltip-trigger:hover .tooltip-body { opacity: 1; pointer-events: auto; }
+  .tooltip-body { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .sidebar-item.active { background: rgba(0,184,160,.12); color: #fff; border-left-color: var(--hm-teal); }
+  .ring-track { stroke: #E3EAEA; }
+  .metric-row { border-bottom: 1px solid #EEF2F2; }
+  .metric-row:last-child { border-bottom: 0; }
+  /* Mobile sidebar drawer */
+  .sidebar-base { position: fixed; top: 0; bottom: 0; left: 0; transition: transform .25s ease; }
+  .sidebar-closed { transform: translateX(-100%); }
+  .sidebar-open { transform: translateX(0); }
+  @media (min-width: 768px) {
+    .sidebar-base { position: sticky; top: 0; min-height: 100vh; transform: none !important; }
+  }
+  /* Prevent body scroll when mobile menu open */
+  body.menu-open { overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+// ============================================================
+// BRAND LOGO
+// ============================================================
+const HeartLogo = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="108 108 168 168" xmlns="http://www.w3.org/2000/svg" style={{ display:'block' }}>
+    <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+      transform="translate(190,190) scale(3.0) translate(-25,-23)" fill="#00B8A0"/>
+    <path d="M 25 46 C 7 35 0 26 0 17 C 0 7 8 0 16 0 C 20 0 24 2 25 6 C 26 2 30 0 34 0 C 42 0 50 7 50 17 C 50 26 43 35 25 46 Z"
+      transform="translate(190,190) scale(1.75) translate(-25,-23)" fill="#FFB347" stroke="white" strokeWidth="6" paintOrder="stroke fill"/>
+    <polyline points="115,190 124,190 127,181 131,200 135,177 139,190 150,190"
+      fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <polyline points="230,190 235,190 239,163 244,218 249,158 254,190 265,190"
+      fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
+// TOAST (global demo-mode notification)
+// ============================================================
+const DEMO_TOAST_MSG = "This action will be enabled once your work systems are connected. You're viewing demo mode.";
+const Toast = ({ message, onClose }) => {
+  if (!message) return null;
+  return (
+    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 max-w-sm fade-in" style={{ animation:'fadeIn .25s ease' }}>
+      <div className="rounded-xl shadow-2xl p-4 flex items-start gap-3 text-white" style={{ background:'#0C4A4E' }}>
+        <div className="text-xl shrink-0" style={{ color:'var(--hm-amber)' }}>✨</div>
+        <div className="flex-1 text-sm leading-snug">{message}</div>
+        <button onClick={onClose} className="text-white/60 hover:text-white text-xl leading-none w-6 h-6 flex items-center justify-center -mr-1 -mt-1" aria-label="Close">×</button>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// DATA
+// ============================================================
+const EMPLOYEES = [
+  { employee_id:'E001', name:'Riya S.',    role:'Analyst',         team:'AR Ops',      manager:'Alex M.',   wip_tickets:9,  meeting_hours:12.5, blocked_items:3, avg_blocked_days:4.2, after_hours:3.0, recognition_public:0, recognition_private:1, missed_1on1s:2, strategic_work_points:5,  total_work_points:40, whi_trend:-7, avatar:'RS', color:'bg-rose-500' },
+  { employee_id:'E002', name:'Diego M.',   role:'Specialist',      team:'Billing',     manager:'Jordan K.', wip_tickets:8,  meeting_hours:9.0,  blocked_items:1, avg_blocked_days:2.0, after_hours:1.5, recognition_public:0, recognition_private:1, missed_1on1s:1, strategic_work_points:12, total_work_points:35, whi_trend:0,  avatar:'DM', color:'bg-amber-500' },
+  { employee_id:'E003', name:'Emma L.',    role:'Senior Analyst',  team:'AR Ops',      manager:'Alex M.',   wip_tickets:6,  meeting_hours:6.0,  blocked_items:0, avg_blocked_days:0.0, after_hours:0.5, recognition_public:2, recognition_private:1, missed_1on1s:0, strategic_work_points:20, total_work_points:40, whi_trend:5,  avatar:'EL', color:'bg-emerald-500' },
+  { employee_id:'E004', name:'Noah P.',    role:'Analyst',         team:'Collections', manager:'Taylor R.', wip_tickets:7,  meeting_hours:8.5,  blocked_items:2, avg_blocked_days:3.1, after_hours:1.0, recognition_public:1, recognition_private:0, missed_1on1s:1, strategic_work_points:8,  total_work_points:35, whi_trend:-3, avatar:'NP', color:'bg-sky-500' },
+  { employee_id:'E005', name:'Priya K.',   role:'Analyst',         team:'Billing',     manager:'Jordan K.', wip_tickets:5,  meeting_hours:7.0,  blocked_items:0, avg_blocked_days:0.0, after_hours:0.2, recognition_public:0, recognition_private:0, missed_1on1s:2, strategic_work_points:10, total_work_points:30, whi_trend:1,  avatar:'PK', color:'bg-fuchsia-500' },
+  { employee_id:'E006', name:'Chen W.',    role:'Team Lead',       team:'Collections', manager:'Taylor R.', wip_tickets:6,  meeting_hours:10.0, blocked_items:0, avg_blocked_days:0.0, after_hours:1.2, recognition_public:3, recognition_private:1, missed_1on1s:0, strategic_work_points:18, total_work_points:38, whi_trend:4,  avatar:'CW', color:'bg-indigo-500' },
+  { employee_id:'E007', name:'Sam T.',     role:'Ops Specialist',  team:'AR Ops',      manager:'Alex M.',   wip_tickets:10, meeting_hours:5.5,  blocked_items:1, avg_blocked_days:2.4, after_hours:2.8, recognition_public:0, recognition_private:1, missed_1on1s:2, strategic_work_points:3,  total_work_points:35, whi_trend:-5, avatar:'ST', color:'bg-red-500' },
+  { employee_id:'E008', name:'Fatima A.',  role:'Analyst',         team:'Billing',     manager:'Jordan K.', wip_tickets:6,  meeting_hours:7.5,  blocked_items:0, avg_blocked_days:0.0, after_hours:0.6, recognition_public:1, recognition_private:0, missed_1on1s:1, strategic_work_points:11, total_work_points:32, whi_trend:2,  avatar:'FA', color:'bg-teal-500' },
+  { employee_id:'E009', name:'Mason H.',   role:'Analyst',         team:'Collections', manager:'Taylor R.', wip_tickets:7,  meeting_hours:8.0,  blocked_items:2, avg_blocked_days:5.0, after_hours:1.0, recognition_public:0, recognition_private:0, missed_1on1s:1, strategic_work_points:7,  total_work_points:33, whi_trend:0,  avatar:'MH', color:'bg-orange-500' },
+  { employee_id:'E010', name:'Olivia B.',  role:'Junior Analyst',  team:'AR Ops',      manager:'Alex M.',   wip_tickets:4,  meeting_hours:6.5,  blocked_items:0, avg_blocked_days:0.0, after_hours:0.2, recognition_public:1, recognition_private:0, missed_1on1s:0, strategic_work_points:14, total_work_points:32, whi_trend:3,  avatar:'OB', color:'bg-violet-500' },
+];
+
+// ============================================================
+// CALCULATION ENGINE
+// ============================================================
+const CAPACITY = 6;
+const clamp = (v) => Math.min(100, Math.max(0, v));
+
+const calcWorkloadBreakdown = (e) => ({
+  wip:        clamp(100 - (e.wip_tickets - CAPACITY) * 10),
+  meeting:    clamp(100 - (e.meeting_hours - 10) * 5),
+  blocked:    clamp(100 - e.blocked_items * 10 - e.avg_blocked_days * 2),
+  afterHours: clamp(100 - e.after_hours * 10),
+});
+const calcW = (e) => { const b = calcWorkloadBreakdown(e); return b.wip*0.35 + b.meeting*0.20 + b.blocked*0.20 + b.afterHours*0.25; };
+const calcR = (e) => Math.min(100, (e.recognition_public + e.recognition_private) * 20);
+const calcF = (e) => Math.max(0, 100 - e.missed_1on1s * 20);
+const calcGOG = (e) => { const ratio = e.strategic_work_points / e.total_work_points; return Math.max(0, ((0.50 - ratio) / 0.50) * 100); };
+const calcWWI = (e) => calcW(e)*0.30 + calcR(e)*0.25 + calcF(e)*0.25 + (100-calcGOG(e))*0.20;
+
+const getWWIBand = (w) => {
+  if (w >= 80) return { label:'Healthy',  color:'var(--hm-green)',  bg:'#E7F7EE', text:'#0F7C3B' };
+  if (w >= 65) return { label:'Watch',    color:'var(--hm-amber)',  bg:'#FFF4E0', text:'#9A5A00' };
+  if (w >= 50) return { label:'At Risk',  color:'#F97316',          bg:'#FFEBDD', text:'#C04000' };
+  return           { label:'Critical', color:'var(--hm-red)',    bg:'#FDE4E4', text:'#9C1D1D' };
+};
+
+// Team averages (computed from EMPLOYEES)
+const teamAvg = {
+  wip:  EMPLOYEES.reduce((s,e)=>s+e.wip_tickets,0)/EMPLOYEES.length,                            // 6.8
+  mtg:  EMPLOYEES.reduce((s,e)=>s+e.meeting_hours,0)/EMPLOYEES.length,                          // 8.05
+  rec:  EMPLOYEES.reduce((s,e)=>s+e.recognition_public+e.recognition_private,0)/EMPLOYEES.length,// 1.3
+  grow: EMPLOYEES.reduce((s,e)=>s+e.strategic_work_points/e.total_work_points,0)/EMPLOYEES.length*100, // ~31
+};
+
+// Human-readable metrics for each employee
+const fmtMetrics = (e) => {
+  const recTotal = e.recognition_public + e.recognition_private;
+  const growPct = Math.round(e.strategic_work_points / e.total_work_points * 100);
+  const blockedDays = e.avg_blocked_days;
+  return {
+    workload:    { label:`${e.wip_tickets} WIP (cap ${CAPACITY})`,
+                   tone: e.wip_tickets > 8 ? 'red' : e.wip_tickets >= 7 ? 'amber' : 'normal' },
+    blocked:     { label: e.blocked_items === 0 ? '0 items' : `${e.blocked_items} item${e.blocked_items===1?'':'s'} · avg ${blockedDays.toFixed(1)}d blocked`,
+                   tone: e.blocked_items > 1 || blockedDays > 3 ? 'red' : e.blocked_items === 1 && blockedDays >= 2 ? 'amber' : 'normal' },
+    meeting:     { label:`${e.meeting_hours} h/week (avg 8h)`,
+                   tone: e.meeting_hours > 11 ? 'red' : e.meeting_hours >= 9 ? 'amber' : 'normal' },
+    recognition: { label:`${recTotal} this month (avg 1–2)`,
+                   tone: recTotal === 0 ? 'red' : recTotal === 1 ? 'amber' : 'normal' },
+    growth:      { label:`${growPct}% strategic (team avg 31%)`,
+                   tone: growPct < 20 ? 'red' : growPct < 30 ? 'amber' : 'normal' },
+  };
+};
+
+const toneHex = { red:'var(--hm-red)', amber:'#B87900', normal:'var(--hm-dark)' };
+
+// Issue pill per employee
+const getIssue = (e) => {
+  const rec = e.recognition_public + e.recognition_private;
+  const growPct = e.strategic_work_points / e.total_work_points;
+  if (e.wip_tickets > 8 && e.blocked_items >= 2)                return { label:'Blocked + Overloaded', tone:'red' };
+  if (e.wip_tickets >= 9)                                        return { label:'High firefighting',   tone:'orange' };
+  if (e.blocked_items >= 2)                                      return { label:'Blocked work',        tone:'orange' };
+  if (growPct < 0.22)                                            return { label:'Growth stalled',      tone:'yellow' };
+  if (rec === 0)                                                 return { label:'Recognition gap',     tone:'blue' };
+  if (e.missed_1on1s >= 2)                                       return { label:'Feedback gap',        tone:'blue' };
+  if (e.meeting_hours > 10)                                      return { label:'Meeting overload',    tone:'yellow' };
+  return { label:'Medium risk', tone:'yellow' };
+};
+const issueStyles = {
+  red:    { bg:'#FDE4E4', text:'#9C1D1D' },
+  orange: { bg:'#FFE4D0', text:'#B43F00' },
+  yellow: { bg:'#FFF4CC', text:'#8A6A00' },
+  blue:   { bg:'#DCEEF7', text:'#0B5E8A' },
+  green:  { bg:'#E7F7EE', text:'#0F7C3B' },
+};
+
+// Team-aware AI recommendations
+const getAIAction = (e) => {
+  const rec = e.recognition_public + e.recognition_private;
+  const growPct = e.strategic_work_points / e.total_work_points;
+  const teammatesWithSpare = EMPLOYEES.filter(x => x.team === e.team && x.employee_id !== e.employee_id && x.wip_tickets < CAPACITY).map(x=>x.name.split(' ')[0]);
+  const spare = teammatesWithSpare.length ? teammatesWithSpare.slice(0,2).join(' & ') : 'the team';
+  const strongPeer = EMPLOYEES.filter(x => x.team === e.team && x.employee_id !== e.employee_id).sort((a,b)=>calcWWI(b)-calcWWI(a))[0];
+  const strongPeerName = strongPeer ? strongPeer.name.split(' ')[0] : 'a teammate';
+
+  if (e.blocked_items >= 2 && e.wip_tickets > CAPACITY) return `Redistribute 2 blocked items to ${spare}`;
+  if (e.wip_tickets >= 9)                               return `Rotate ${e.name.split(' ')[0]} onto strategic work — ${strongPeerName} can cover tactical load`;
+  if (e.blocked_items >= 2)                             return `Unblock 2 tickets — schedule 15-min sync with ${e.manager}`;
+  if (growPct < 0.22)                                   return `Assign one strategic initiative — draft peer recognition for ${e.name.split(' ')[0]}`;
+  if (rec === 0 && e.missed_1on1s >= 2)                 return `Schedule overdue 1:1 — draft appreciation note`;
+  if (rec === 0)                                        return `Draft peer recognition for ${e.name.split(' ')[0]} in the ${e.team} channel`;
+  if (e.missed_1on1s >= 2)                              return `Schedule overdue 1:1 with ${e.name.split(' ')[0]}`;
+  return `Keep monitoring — weekly check-in with ${e.name.split(' ')[0]}`;
+};
+
+// ============================================================
+// CHART PRIMITIVES
+// ============================================================
+const RingChart = ({ value, max=100, size=180, stroke=18, color='var(--hm-amber)', label }) => {
+  const r = (size - stroke) / 2;
+  const cx = size/2, cy = size/2;
+  const angle = (Math.min(value, max) / max) * 360;
+  // Start at 12 o'clock, sweep COUNTER-clockwise so the filled arc covers the LEFT side
+  const startRad = -Math.PI/2;
+  const endRad   = startRad - (angle * Math.PI / 180);
+  const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad),   y2 = cy + r * Math.sin(endRad);
+  const largeArc = angle > 180 ? 1 : 0;
+  const sweep = 0; // 0 = counter-clockwise in SVG path arcs
+  const pathD = angle >= 359.9
+    ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 0 ${cx - 0.01} ${cy - r} Z`
+    : `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} ${sweep} ${x2} ${y2}`;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={cx} cy={cy} r={r} fill="none" className="ring-track" strokeWidth={stroke}/>
+      <path d={pathD} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"/>
+      <text x={cx} y={cy+size*0.08} textAnchor="middle" fontFamily="Georgia, serif" fontSize={size*0.34} fontWeight="700" fill={color}>{Math.round(value)}</text>
+      {label && <text x={cx} y={cy+size*0.28} textAnchor="middle" fontSize="11" fill="#6b7a7a">{label}</text>}
+    </svg>
+  );
+};
+
+const Sparkline = ({ data, w=140, h=42, color='var(--hm-teal)' }) => {
+  const min = Math.min(...data), max = Math.max(...data);
+  const pts = data.map((v,i) => [ (i/(data.length-1))*w, h - ((v-min)/Math.max(1,max-min)) * (h-6) - 3 ]);
+  const path = pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="3" fill={color}/>
+    </svg>
+  );
+};
+
+const LineChart = ({ data, height = 260 }) => {
+  const w = 480, pad = { t:20, r:14, b:52, l:50 };
+  const min = Math.floor(Math.min(...data.map(d=>d.wwi)) - 3);
+  const max = Math.ceil(Math.max(...data.map(d=>d.wwi)) + 3);
+  const xStep = (w - pad.l - pad.r) / (data.length - 1);
+  const yScale = (v) => pad.t + (height - pad.t - pad.b) * (1 - (v - min) / (max - min));
+  const points = data.map((d,i) => [pad.l + i*xStep, yScale(d.wwi)]);
+  const path = points.map((p,i) => `${i===0?'M':'L'}${p[0]},${p[1]}`).join(' ');
+  const areaPath = path + ` L${points[points.length-1][0]},${height-pad.b} L${points[0][0]},${height-pad.b} Z`;
+  const ticks = 4;
+  const yTicks = Array.from({length:ticks+1}, (_,i) => min + (max-min)*i/ticks);
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#00B8A0" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#00B8A0" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* Y-axis label */}
+      <text x={14} y={pad.t + (height-pad.t-pad.b)/2} fontSize="12" fill="#4A6666" textAnchor="middle" transform={`rotate(-90 14 ${pad.t + (height-pad.t-pad.b)/2})`} fontFamily="Georgia, serif">Team WWI</text>
+      {/* Y gridlines & tick labels */}
+      {yTicks.map((v,i)=>(
+        <g key={i}>
+          <line x1={pad.l} x2={w-pad.r} y1={yScale(v)} y2={yScale(v)} stroke="#EEF2F2" strokeDasharray="3 3"/>
+          <text x={pad.l-6} y={yScale(v)+4} fontSize="12" fill="#7A8989" textAnchor="end">{Math.round(v)}</text>
+        </g>
+      ))}
+      {/* X-axis line */}
+      <line x1={pad.l} x2={w-pad.r} y1={height-pad.b} y2={height-pad.b} stroke="#CFDADA" strokeWidth="1"/>
+      {/* Area + line */}
+      <path d={areaPath} fill="url(#lg)" />
+      <path d={path} fill="none" stroke="#00B8A0" strokeWidth="2.5" strokeLinejoin="round"/>
+      {/* Points + X-axis date labels */}
+      {points.map((p,i)=>(
+        <g key={i}>
+          <circle cx={p[0]} cy={p[1]} r="4" fill="#fff" stroke="#00B8A0" strokeWidth="2"/>
+          <text x={p[0]} y={height-pad.b+16} fontSize="12" fill="#4A6666" textAnchor="middle">{data[i].period}</text>
+        </g>
+      ))}
+      {/* X-axis title */}
+      <text x={(w-pad.l-pad.r)/2 + pad.l} y={height-6} fontSize="11" fill="#7A8989" textAnchor="middle">Sprint end date (2-week cadence)</text>
+    </svg>
+  );
+};
+
+const DonutChart = ({ data, size = 180 }) => {
+  const total = data.reduce((s,d)=>s+d.value, 0);
+  const cx = size/2, cy = size/2, r = size/2 - 12, ir = r - 22;
+  let acc = 0;
+  const arcs = data.map((d) => {
+    const start = acc / total * 2 * Math.PI - Math.PI/2;
+    acc += d.value;
+    const end = acc / total * 2 * Math.PI - Math.PI/2;
+    const large = end - start > Math.PI ? 1 : 0;
+    const x1 = cx + r*Math.cos(start), y1 = cy + r*Math.sin(start);
+    const x2 = cx + r*Math.cos(end),   y2 = cy + r*Math.sin(end);
+    const xi2 = cx + ir*Math.cos(end),  yi2 = cy + ir*Math.sin(end);
+    const xi1 = cx + ir*Math.cos(start),yi1 = cy + ir*Math.sin(start);
+    return { path: `M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${xi2},${yi2} A${ir},${ir} 0 ${large} 0 ${xi1},${yi1} Z`, color: d.color };
+  });
+  return (
+    <div className="flex items-center gap-4">
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width:size, height:size }}>
+        {arcs.map((a,i)=><path key={i} d={a.path} fill={a.color} />)}
+        <text x={cx} y={cy-4} textAnchor="middle" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill="var(--hm-dark)">{total}</text>
+        <text x={cx} y={cy+14} textAnchor="middle" fontSize="10" fill="#7A8989">Employees</text>
+      </svg>
+      <div className="space-y-2">
+        {data.map((d,i)=>(
+          <div key={i} className="flex items-center gap-2 text-sm">
+            <span className="inline-block w-3 h-3 rounded-sm" style={{ background:d.color }}></span>
+            <span className="text-gray-700 w-20">{d.label}</span>
+            <span className="text-gray-500 font-medium">{d.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BarChart = ({ data, height = 150 }) => {
+  const w = 360, pad = { t:10, r:10, b:36, l:30 };
+  const max = Math.max(...data.map(d=>d.value), 1);
+  const barW = (w - pad.l - pad.r) / data.length - 8;
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} className="w-full">
+      {data.map((d,i) => {
+        const h = (height - pad.t - pad.b) * (d.value / max);
+        const x = pad.l + i*((w-pad.l-pad.r)/data.length) + 4;
+        const y = height - pad.b - h;
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={barW} height={h} fill={d.color} rx="4"/>
+            <text x={x + barW/2} y={y - 4} fontSize="11" fontWeight="600" fill="var(--hm-dark)" textAnchor="middle">{d.value}</text>
+            <text x={x + barW/2} y={height-pad.b+14} fontSize="10" fill="#7A8989" textAnchor="middle">{d.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+// Horizontal WWI bar (Worklytics-style) — fills to WWI% with band color
+const WWIBar = ({ value, width=180 }) => {
+  const b = getWWIBand(value);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="serif font-bold text-lg" style={{ color: b.color, fontFamily:'Georgia, serif', minWidth:28 }}>{Math.round(value)}</span>
+      <div className="relative h-2 rounded-full overflow-hidden" style={{ background:'#EEF2F2', width }}>
+        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width:`${Math.max(4, Math.min(100,value))}%`, background:b.color }}></div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// SHARED UI
+// ============================================================
+const IssuePill = ({ issue }) => {
+  const s = issueStyles[issue.tone];
+  return <span className="inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold" style={{ background:s.bg, color:s.text }}>{issue.label}</span>;
+};
+
+const Tooltip = ({ text, children }) => (
+  <span className="relative inline-block tooltip-trigger">
+    {children}
+    <span className="tooltip-body absolute left-1/2 -translate-x-1/2 -top-2 -translate-y-full z-30 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 w-56 text-center shadow-lg">{text}</span>
+  </span>
+);
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+const buildTrend = (currentAvg) => {
+  // 8 most-recent sprint-end dates (2-week cadence) leading up to today (Apr 22, 2026)
+  const dates = ['1/5','1/19','2/2','2/16','3/2','3/16','3/30','4/13'];
+  const pts   = [ 72.1,  70.4, 69.2, 68.0,  67.1, 65.8,  66.3, currentAvg];
+  return pts.map((v,i) => ({ period: dates[i], wwi: Math.round(v*10)/10 }));
+};
+
+// Wellbeing Pulse — 5 sub-categories with weights (weighted avg drives headline score)
+const PULSE_CATEGORIES = [
+  { name:'Work-life balance',      score:66, weight:0.25 },
+  { name:'Recognition',            score:62, weight:0.20 },
+  { name:'Connection & Community', score:78, weight:0.15 },
+  { name:'Opportunity for Growth', score:68, weight:0.20 },
+  { name:'Safety',                 score:82, weight:0.20 },
+];
+const PULSE_SCORE = Math.round(PULSE_CATEGORIES.reduce((s,c) => s + c.score * c.weight, 0));
+const pulseSpark = [62, 64, 63, 65, 64, 66, 70, PULSE_SCORE];
+
+const Dashboard = ({ onSelectEmployee, onGoToActions, demoAction }) => {
+  const scored = EMPLOYEES.map(e => ({ ...e, wwi: calcWWI(e), GOG: calcGOG(e) }));
+  const avgWWI = scored.reduce((s,e)=>s+e.wwi,0) / scored.length;
+  const band = getWWIBand(avgWWI);
+  const bandCounts = { Healthy:0, Watch:0, 'At Risk':0, Critical:0 };
+  scored.forEach(e => bandCounts[getWWIBand(e.wwi).label]++);
+  const atRisk = bandCounts['At Risk'] + bandCounts.Critical;
+  const top5 = [...scored].sort((a,b) => a.wwi - b.wwi).slice(0,5);
+  const trend = buildTrend(avgWWI);
+  const donut = [
+    { label:'Healthy',  value:bandCounts.Healthy,      color:'var(--hm-green)' },
+    { label:'Watch',    value:bandCounts.Watch,        color:'var(--hm-amber)' },
+    { label:'At Risk',  value:bandCounts['At Risk'],   color:'#F97316' },
+    { label:'Critical', value:bandCounts.Critical,     color:'var(--hm-red)' },
+  ];
+
+  // Top Drivers of Risk — action-first, then affected count, then change vs last sprint
+  const drivers = [
+    { action: '0 recognitions in last sprint',
+      count:  scored.filter(e => e.recognition_public + e.recognition_private === 0).length,
+      change: '▲ 1 since last sprint', trendTone: 'text-red-600', icon:'🎉' },
+    { action: 'High workload (WIP > 7)',
+      count:  scored.filter(e => e.wip_tickets > 7).length,
+      change: '▲ 2 since last sprint', trendTone: 'text-red-600', icon:'📈' },
+    { action: '2+ blocked items',
+      count:  scored.filter(e => e.blocked_items >= 2).length,
+      change: 'No change since last sprint', trendTone: '', icon:'🚧' },
+    { action: '2+ missed 1:1s',
+      count:  scored.filter(e => e.missed_1on1s >= 2).length,
+      change: '▲ 1 since last sprint', trendTone: 'text-red-600', icon:'💬' },
+    { action: '<25% strategic work',
+      count:  scored.filter(e => e.strategic_work_points/e.total_work_points < 0.25).length,
+      change: '▼ 1 since last sprint', trendTone: 'text-green-600', icon:'🎯' },
+  ];
+
+  return (
+    <div className="fade-in space-y-3">
+      {/* Row 1: Hero ring + trend chart | Wellbeing Pulse */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+        <div className="lg:col-span-2 card card-shadow p-4 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+            <div>
+              <h2 className="serif text-lg md:text-xl font-semibold hm-dark-text">Team Wellbeing Rating</h2>
+              <p className="text-xs md:text-sm text-gray-500">Automated rating combining workload, recognition, feedback &amp; growth</p>
+            </div>
+            <span className="text-[11px] md:text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{ background:band.bg, color:band.text }}>{band.label} zone</span>
+          </div>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 md:gap-5 items-center">
+            <div className="flex items-center gap-4">
+              <RingChart value={avgWWI} color={band.color} size={132} stroke={14}/>
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="inline-flex items-center gap-1 text-red-700 font-semibold">▼ 2</span>
+                  <span className="text-gray-600 text-[13px]">vs last sprint</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-gray-700">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-red-600 shrink-0" style={{ background:'#FDE4E4' }}>⚠</span>
+                  <span className="font-semibold">{atRisk}</span>
+                  <span className="text-gray-500">at risk</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-gray-700">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0" style={{ background:'#FDE4E4' }}>🔥</span>
+                  <span className="font-semibold">{bandCounts.Critical}</span>
+                  <span className="text-gray-500">critical</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-gray-700">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0" style={{ background:'#E7F7EE' }}>✓</span>
+                  <span className="font-semibold">{bandCounts.Healthy}</span>
+                  <span className="text-gray-500">healthy</span>
+                </div>
+              </div>
+            </div>
+            <div className="w-full">
+              <div style={{ height: 260 }}><LineChart data={trend} /></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card card-shadow p-6 flex flex-col">
+          <h3 className="serif text-lg font-semibold hm-dark-text">Wellbeing Pulse</h3>
+          <p className="text-xs text-gray-500 mb-3">Derived from employee pulse surveys · weighted average of 5 drivers</p>
+          <div className="flex items-end gap-3 mb-1">
+            <div className="serif text-5xl font-bold hm-dark-text leading-none">{PULSE_SCORE}</div>
+            <div className="pb-1 text-sm text-gray-500">/ 100</div>
+            <div className="ml-auto"><Sparkline data={pulseSpark} /></div>
+          </div>
+          <div className="text-xs text-gray-500">Based on 83% response rate · last survey Apr 10</div>
+          <hr className="my-3 border-gray-100"/>
+          <div className="space-y-2.5 flex-1">
+            {PULSE_CATEGORIES.map(c => {
+              const color = c.score >= 75 ? 'var(--hm-green)' : c.score >= 60 ? 'var(--hm-teal)' : 'var(--hm-amber)';
+              return (
+                <div key={c.name}>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-gray-700">{c.name}</span>
+                    <span className="font-semibold" style={{ color }}>{c.score}</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                    <div className="h-full rounded-full" style={{ width:`${c.score}%`, background: color }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Attention Needed | WWI Distribution + Growth Opportunity Gap (stacked) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 card card-shadow overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-5 pb-3">
+            <div>
+              <h3 className="serif text-lg font-semibold hm-dark-text">Attention Needed — Top 5 Employees</h3>
+              <p className="text-xs text-gray-500">Lowest WWI first · click View for a detailed snapshot</p>
+            </div>
+            <span className="text-xs font-medium text-red-700 bg-red-50 border border-red-100 rounded-full px-2 py-1">{atRisk} need attention</span>
+          </div>
+          <div className="px-4 md:px-5 pb-4">
+            <div className="hidden md:grid grid-cols-12 text-[11px] uppercase tracking-wide text-gray-500 font-semibold pb-2 border-b border-gray-100">
+              <div className="col-span-4">Name</div>
+              <div className="col-span-3">WWI</div>
+              <div className="col-span-4">Issue</div>
+              <div className="col-span-1 text-right"></div>
+            </div>
+            {top5.map(e => {
+              const issue = getIssue(e);
+              return (
+                <div key={e.employee_id} className="py-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 transition">
+                  {/* Mobile: stacked rows */}
+                  <div className="md:hidden space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`${e.color} w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>{e.avatar}</div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 truncate">{e.name}</div>
+                          <div className="text-[11px] text-gray-500 truncate">{e.role} · {e.team}</div>
+                        </div>
+                      </div>
+                      <button onClick={()=>onSelectEmployee(e)} className="text-xs font-semibold text-white px-4 py-2 rounded-md hover:opacity-90 transition shrink-0" style={{ background:'var(--hm-teal)' }}>View</button>
+                    </div>
+                    <div><WWIBar value={e.wwi} width={160}/></div>
+                    <div><IssuePill issue={issue}/></div>
+                  </div>
+                  {/* Desktop: grid */}
+                  <div className="hidden md:grid grid-cols-12 items-center">
+                    <div className="col-span-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`${e.color} w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold`}>{e.avatar}</div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{e.name}</div>
+                          <div className="text-[11px] text-gray-500">{e.role} · {e.team}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-3"><WWIBar value={e.wwi} width={130} /></div>
+                    <div className="col-span-4"><IssuePill issue={issue} /></div>
+                    <div className="col-span-1 text-right">
+                      <button onClick={()=>onSelectEmployee(e)} className="text-xs font-semibold text-white px-4 py-1.5 rounded-md hover:opacity-90 transition" style={{ background:'var(--hm-teal)' }}>View</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={onGoToActions} className="w-full text-white font-semibold py-3 flex items-center justify-center gap-2 hover:opacity-95 transition mt-auto" style={{ background:'var(--hm-dark)' }}>
+            <span>☰</span> Action Queue
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="card card-shadow p-4">
+            <h3 className="serif text-base md:text-lg font-semibold hm-dark-text">WWI Distribution</h3>
+            <p className="text-xs text-gray-500 mb-2">How the team is splitting across risk bands</p>
+            <DonutChart data={donut} size={150}/>
+          </div>
+          <div className="card card-shadow p-4">
+            <h3 className="serif text-base md:text-lg font-semibold hm-dark-text">Growth Opportunity Gap</h3>
+            <p className="text-xs text-gray-500 mb-2">Strategic vs. tactical work distribution</p>
+            <BarChart data={[
+              { label:'Healthy',  value: scored.filter(e => e.GOG <= 20).length,                    color:'var(--hm-green)' },
+              { label:'Watch',    value: scored.filter(e => e.GOG > 20 && e.GOG <= 40).length,      color:'var(--hm-amber)' },
+              { label:'At Risk',  value: scored.filter(e => e.GOG > 40 && e.GOG <= 60).length,      color:'#F97316' },
+              { label:'Critical', value: scored.filter(e => e.GOG > 60 && e.GOG <= 80).length,      color:'var(--hm-red)' },
+              { label:'Urgent',   value: scored.filter(e => e.GOG > 80).length,                     color:'#991B1B' },
+            ]}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Top Drivers of Risk — horizontal cards */}
+      <div>
+        <div className="mb-3">
+          <h3 className="serif text-lg font-semibold hm-dark-text">Top Drivers of Risk</h3>
+          <p className="text-xs text-gray-500">Signals pulling WWI down · ranked by team impact</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {drivers.map((d, i) => (
+            <div key={i} className="card card-shadow p-4 flex flex-col">
+              <div className="text-xl mb-2">{d.icon}</div>
+              <div className="serif font-semibold hm-dark-text text-[14px] leading-tight">{d.action}</div>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="serif text-3xl font-bold hm-dark-text">{d.count}</span>
+                <span className="text-xs text-gray-500">employee{d.count===1?'':'s'}</span>
+              </div>
+              <div className={`text-[11px] mt-1 ${d.trendTone || 'text-gray-500'}`}>{d.change}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// TEAM TAB
+// ============================================================
+const Team = ({ onSelectEmployee, demoAction }) => {
+  const [riskFilter, setRiskFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState('all');
+
+  const scored = EMPLOYEES.map(e => ({ ...e, wwi: calcWWI(e) }));
+  const filtered = scored
+    .filter(e => riskFilter==='all' || getWWIBand(e.wwi).label.toLowerCase() === riskFilter)
+    .filter(e => roleFilter==='all' || e.role === roleFilter)
+    .filter(e => teamFilter==='all' || e.team === teamFilter)
+    .sort((a,b) => a.wwi - b.wwi);
+  const roles = Array.from(new Set(EMPLOYEES.map(e=>e.role)));
+  const teams = Array.from(new Set(EMPLOYEES.map(e=>e.team)));
+
+  return (
+    <div className="fade-in space-y-4">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3">
+        <h2 className="serif text-lg md:text-xl font-semibold hm-dark-text w-full md:w-auto md:mr-2">My Team</h2>
+        <select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200">
+          <option value="all">All teams</option>
+          {teams.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={riskFilter} onChange={e=>setRiskFilter(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200">
+          <option value="all">All risk levels</option>
+          <option value="healthy">Healthy</option>
+          <option value="watch">Watch</option>
+          <option value="at risk">At Risk</option>
+          <option value="critical">Critical</option>
+        </select>
+        <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200">
+          <option value="all">All roles</option>
+          {roles.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <span className="text-xs text-gray-500 ml-auto">{filtered.length} shown · sorted by WWI</span>
+      </div>
+
+      {/* Mobile: card view */}
+      <div className="md:hidden space-y-3">
+        {filtered.map(e => {
+          const m = fmtMetrics(e);
+          const issue = getIssue(e);
+          return (
+            <div key={e.employee_id} className="card card-shadow p-4">
+              <div className="flex items-start gap-3">
+                <div className={`${e.color} w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>{e.avatar}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 truncate">{e.name}</div>
+                      <div className="text-[11px] text-gray-500 truncate">{e.role} · {e.team}</div>
+                    </div>
+                    <button onClick={()=>onSelectEmployee(e)} className="text-xs font-semibold text-white px-4 py-2 rounded-md hover:opacity-90 transition shrink-0" style={{ background:'var(--hm-teal)' }}>View</button>
+                  </div>
+                  <div className="mt-3"><WWIBar value={e.wwi} width={160}/></div>
+                  <div className="mt-2"><IssuePill issue={issue}/></div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Workload</div>
+                      <div className="font-medium" style={{ color: toneHex[m.workload.tone] }}>{m.workload.label}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Growth</div>
+                      <div className="font-medium" style={{ color: toneHex[m.growth.tone] }}>{m.growth.label}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Blocked</div>
+                      <div className="font-medium" style={{ color: toneHex[m.blocked.tone] }}>{m.blocked.label}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Recognition</div>
+                      <div className="font-medium" style={{ color: toneHex[m.recognition.tone] }}>{m.recognition.label}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block card card-shadow overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-gray-500 text-[11px] uppercase tracking-wide">
+                <th className="py-3 px-4 font-semibold">Employee</th>
+                <th className="py-3 px-4 font-semibold">Team</th>
+                <th className="py-3 px-4 font-semibold min-w-[220px]">WWI</th>
+                <th className="py-3 px-4 font-semibold">Workload</th>
+                <th className="py-3 px-4 font-semibold">Blocked</th>
+                <th className="py-3 px-4 font-semibold">Meeting Load</th>
+                <th className="py-3 px-4 font-semibold">Recognition</th>
+                <th className="py-3 px-4 font-semibold">Growth</th>
+                <th className="py-3 px-4 font-semibold">Issue</th>
+                <th className="py-3 px-4 font-semibold text-right"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(e => {
+                const m = fmtMetrics(e);
+                const issue = getIssue(e);
+                return (
+                  <tr key={e.employee_id} className="border-t border-gray-50 hover:bg-gray-50/50 transition">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`${e.color} w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold`}>{e.avatar}</div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{e.name}</div>
+                          <div className="text-[11px] text-gray-500">{e.role}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700"><div>{e.team}</div><div className="text-[11px] text-gray-500">{e.manager}</div></td>
+                    <td className="py-3 px-4"><WWIBar value={e.wwi} width={160}/></td>
+                    <td className="py-3 px-4"><span className="font-medium" style={{ color: toneHex[m.workload.tone] }}>{m.workload.label}</span></td>
+                    <td className="py-3 px-4"><span className="font-medium" style={{ color: toneHex[m.blocked.tone] }}>{m.blocked.label}</span></td>
+                    <td className="py-3 px-4"><span className="font-medium" style={{ color: toneHex[m.meeting.tone] }}>{m.meeting.label}</span></td>
+                    <td className="py-3 px-4"><span className="font-medium" style={{ color: toneHex[m.recognition.tone] }}>{m.recognition.label}</span></td>
+                    <td className="py-3 px-4"><span className="font-medium" style={{ color: toneHex[m.growth.tone] }}>{m.growth.label}</span></td>
+                    <td className="py-3 px-4"><IssuePill issue={issue}/></td>
+                    <td className="py-3 px-4 text-right">
+                      <button onClick={()=>onSelectEmployee(e)} className="text-xs font-semibold text-white px-3 py-1.5 rounded-md hover:opacity-90 transition" style={{ background:'var(--hm-teal)' }}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// ACTIONS TAB
+// ============================================================
+const getRecommendations = (e) => {
+  const wwi = calcWWI(e), gog = calcGOG(e);
+  const recs = [];
+  if (wwi < 50)                                            recs.push({ kind:'1on1',        label:'Schedule 1:1',        urgency:'high',   icon:'📅' });
+  if (e.wip_tickets > CAPACITY)                            recs.push({ kind:'reassign',    label:'Reassign workload',   urgency:'high',   icon:'↔️' });
+  if (e.blocked_items > 1)                                 recs.push({ kind:'unblock',     label:'Unblock tasks',       urgency:'medium', icon:'🔓' });
+  if (e.recognition_public + e.recognition_private === 0)  recs.push({ kind:'recognition', label:'Send recognition',    urgency:'medium', icon:'🎉' });
+  if (gog > 60)                                            recs.push({ kind:'strategic',   label:'Assign strategic work', urgency:'high', icon:'🎯' });
+  if (e.missed_1on1s >= 2)                                 recs.push({ kind:'feedback',    label:'Catch up on feedback',urgency:'medium', icon:'💬' });
+  return recs;
+};
+
+const Actions = ({ onSelectEmployee, demoAction }) => {
+  const scored = EMPLOYEES.map(e => ({ ...e, wwi: calcWWI(e), recs: getRecommendations(e) }));
+  const flagged = scored.filter(e => e.recs.length > 0).sort((a,b) => a.wwi - b.wwi);
+  const urgencyRank = { high:0, medium:1, low:2 };
+
+  const teamActions = [
+    { icon:'🎓', title:'Compliance training due',    desc:'3 team members missing Q2 compliance module',        due:'Due in 5 days',  tone:'amber' },
+    { icon:'📆', title:'Sprint retrospective',        desc:'AR Ops retro not scheduled yet',                      due:'Due Friday',      tone:'orange' },
+    { icon:'📝', title:'Quarterly review drafts',     desc:'6 reviews pending manager input',                     due:'Due May 5',       tone:'amber' },
+    { icon:'💼', title:'Workload rebalance review',   desc:'Riya and Sam flagged for redistribution meeting',     due:'This week',       tone:'red' },
+  ];
+  const toneBox = { amber:'border-amber-200 bg-amber-50/60', orange:'border-orange-200 bg-orange-50/60', red:'border-red-200 bg-red-50/60' };
+
+  return (
+    <div className="fade-in space-y-6">
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="serif text-xl font-semibold hm-dark-text">Today's Actions</h2>
+            <p className="text-sm text-gray-500">Rule-engine recommendations based on current metrics</p>
+          </div>
+          <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background:'rgba(0,184,160,.12)', color:'var(--hm-dark)' }}>
+            {flagged.reduce((s,e)=>s+e.recs.length,0)} total actions
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {flagged.map(e => (
+            <div key={e.employee_id} className="card card-shadow p-4 hover:card-shadow-lg transition">
+              <div className="flex items-start gap-3">
+                <div className={`${e.color} w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0`}>{e.avatar}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-gray-900">{e.name}</div>
+                      <div className="text-xs text-gray-500">{e.role} · {e.team}</div>
+                    </div>
+                    <WWIBar value={e.wwi} width={90}/>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {e.recs.sort((a,b)=>urgencyRank[a.urgency]-urgencyRank[b.urgency]).map((r,i)=>(
+                      <button key={i} onClick={demoAction} className="inline-flex items-center gap-1.5 rounded-lg text-xs font-medium px-3 py-2 border transition hover:opacity-80"
+                        style={r.urgency==='high'
+                          ? { background:'#FDE4E4', borderColor:'#F7C4C4', color:'#9C1D1D' }
+                          : { background:'#E7F7F4', borderColor:'#B9E6DE', color:'var(--hm-dark)' }}>
+                        <span>{r.icon}</span>{r.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={()=>onSelectEmployee(e)} className="mt-3 text-xs font-medium hover:underline" style={{ color:'var(--hm-teal)' }}>View details →</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3">
+          <h2 className="serif text-xl font-semibold hm-dark-text">Team Actions</h2>
+          <p className="text-sm text-gray-500">Administrative and schedule-driven items</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {teamActions.map((a,i) => (
+            <div key={i} className={`border rounded-xl p-4 ${toneBox[a.tone]}`}>
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">{a.icon}</div>
+                <div>
+                  <div className="font-semibold text-gray-900">{a.title}</div>
+                  <div className="text-sm text-gray-700 mt-0.5">{a.desc}</div>
+                  <div className="text-xs text-gray-600 mt-2 font-medium">{a.due}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// AI COACHING
+// ============================================================
+const aiRecognition = (e) => {
+  const strength = e.wip_tickets > CAPACITY ? `handling a heavy workload of ${e.wip_tickets} active tickets`
+                 : e.recognition_public + e.recognition_private > 2 ? 'consistent high-quality delivery'
+                 : `steady execution on the ${e.team} team`;
+  return `Hi ${e.name.split(' ')[0]},\n\nI wanted to take a moment to recognize the effort you've been putting in on the ${e.team} team. Your work — especially ${strength} — has not gone unnoticed.\n\nThank you for the consistency and care you bring to the work every day. It makes a real difference to the team.\n\n— ${e.manager}`;
+};
+const aiFeedback = (e) => {
+  const R = calcR(e), F = calcF(e), GOG = calcGOG(e);
+  let strength = 'Reliable delivery and strong ownership of assigned work.';
+  if (GOG < 30) strength = 'Strong balance of tactical execution and strategic thinking.';
+  if (e.recognition_public + e.recognition_private >= 3) strength = 'Recognized by peers and leaders — a positive force on the team.';
+  let improvement = 'General room to push into higher-leverage work.';
+  if (e.wip_tickets > CAPACITY) improvement = `Workload management — currently at ${e.wip_tickets} tickets vs. the ${CAPACITY}-ticket team capacity. Items are taking longer to resolve.`;
+  else if (e.blocked_items > 1) improvement = `Proactive unblocking — ${e.blocked_items} items averaging ${e.avg_blocked_days}d blocked is slowing throughput.`;
+  else if (GOG > 60) improvement = `Strategic contribution — only ${Math.round((e.strategic_work_points/e.total_work_points)*100)}% of work points are on strategic items (team target: 50%).`;
+  else if (F < 60) improvement = `1:1 consistency — ${e.missed_1on1s} missed sessions this cycle.`;
+  let action = 'Pick one growth-stretch project this sprint and own the definition.';
+  if (e.wip_tickets > CAPACITY) action = `Partner with ${e.manager} to reassign 2–3 tickets and set a WIP cap at ${CAPACITY}. Check in weekly.`;
+  else if (e.blocked_items > 1) action = `Escalate any blocker aging beyond 2 days. Book a 15-min unblock sync with ${e.manager} by end of week.`;
+  else if (GOG > 60) action = `Identify one strategic initiative for the next sprint. Reallocate ~25% of tactical load toward it.`;
+  else if (F < 60) action = `Lock the weekly 1:1 on both calendars as "no-reschedule." Bring one growth topic each session.`;
+  return { strength, improvement, action };
+};
+const aiDifficultConversation = (e) => {
+  const firstName = e.name.split(' ')[0];
+  let topic = 'general wellbeing concerns';
+  if (e.wip_tickets > CAPACITY && e.after_hours >= 2) topic = 'workload overload and after-hours work';
+  else if (calcR(e) < 40 && e.missed_1on1s >= 2) topic = 'disengagement risk';
+  else if (calcWWI(e) < 50) topic = 'declining wellbeing indicators';
+  return {
+    topic,
+    steps: [
+      { label:'Open with care',   body:`"${firstName}, I wanted to carve out some dedicated time because I care about how you're doing — not just what you're delivering. I've noticed a few things recently and want to check in."` },
+      { label:'State observation (no judgment)', body:`"Over the last sprint, I've noticed ${e.wip_tickets > CAPACITY ? `you're carrying ${e.wip_tickets} tickets against our ${CAPACITY}-ticket capacity` : ''}${e.after_hours >= 2 ? `, and logging about ${e.after_hours} hours after-hours each week` : ''}${calcR(e) < 40 ? `, and it's been quiet on recognition lately` : ''}. That's what I'm seeing — I want to hear how it feels from your side."` },
+      { label:'Ask open question', body:`"What's feeling heaviest right now? And what would meaningfully help?"` },
+      { label:"Listen — don't solve", body:`Let them speak for at least 3–5 minutes uninterrupted. Reflect back what you hear before responding.` },
+      { label:'Co-create an action', body:`"Here's what I can do this week: reassign two tickets to ${e.team==='AR Ops'?'Olivia':'Fatima'}, protect one no-meeting afternoon, and cover your backlog during our next sprint planning. Would that help?"` },
+      { label:'Close with commitment', body:`"Let's check in again Thursday — 20 minutes, just the two of us. And please flag anything before then that makes this worse. I've got you."` },
+    ]
+  };
+};
+
+const AICoaching = ({ demoAction }) => {
+  const [mod, setMod] = useState('recognition');
+  const [empId, setEmpId] = useState(EMPLOYEES[0].employee_id);
+  const emp = EMPLOYEES.find(e => e.employee_id === empId);
+  const [copied, setCopied] = useState(false);
+  const copy = (text) => { navigator.clipboard?.writeText(text); setCopied(true); setTimeout(()=>setCopied(false), 1500); };
+  const modules = [
+    { id:'recognition', label:'Draft Recognition',      icon:'🎉', desc:'Pre-filled message celebrating real-world signals' },
+    { id:'feedback',    label:'Draft Feedback',         icon:'💬', desc:'Strength · Improvement · Action format' },
+    { id:'difficult',   label:'Difficult Conversation', icon:'🤝', desc:'Structured script for sensitive 1:1s' },
+  ];
+  return (
+    <div className="fade-in space-y-4">
+      <div className="hm-gradient rounded-xl p-5 text-white card-shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center text-xl">🤖</div>
+          <div>
+            <h2 className="serif text-lg font-semibold">AI Coaching Assistant</h2>
+            <p className="text-xs text-white/80">Grounded in the selected employee's live metrics — not generic templates</p>
+          </div>
+        </div>
+      </div>
+      <div className="card card-shadow p-5 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {modules.map(m => (
+            <button key={m.id} onClick={()=>setMod(m.id)} className="text-left rounded-xl border p-4 transition"
+              style={mod===m.id ? { borderColor:'var(--hm-teal)', background:'rgba(0,184,160,.08)', boxShadow:'0 0 0 2px rgba(0,184,160,.15)' } : { borderColor:'#E3EAEA' }}>
+              <div className="text-2xl mb-1">{m.icon}</div>
+              <div className="font-semibold text-gray-900 text-sm">{m.label}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{m.desc}</div>
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          <label className="text-sm font-medium text-gray-700">Employee</label>
+          <select value={empId} onChange={e=>setEmpId(e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200">
+            {EMPLOYEES.map(e => <option key={e.employee_id} value={e.employee_id}>{e.name} — {e.role}, {e.team}</option>)}
+          </select>
+          <button onClick={demoAction} className="text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition" style={{ background:'var(--hm-teal)' }}>✨ Send to Slack</button>
+        </div>
+        <div className="bg-gray-50 rounded-xl border border-gray-100 p-5 min-h-[240px]">
+          {mod === 'recognition' && (
+            <div className="fade-in">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-semibold text-gray-700">Draft — Recognition Message</div>
+                <button onClick={()=>copy(aiRecognition(emp))} className="text-xs font-medium hover:underline" style={{ color:'var(--hm-teal)' }}>{copied?'Copied ✓':'Copy'}</button>
+              </div>
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">{aiRecognition(emp)}</pre>
+            </div>
+          )}
+          {mod === 'feedback' && (() => { const f = aiFeedback(emp); return (
+            <div className="fade-in space-y-3">
+              <div className="text-sm font-semibold text-gray-700 mb-1">Draft — Structured Feedback</div>
+              <div className="rounded-lg p-3" style={{ background:'#E7F7EE', border:'1px solid #C6E8D2' }}>
+                <div className="text-[11px] uppercase tracking-wide font-semibold" style={{ color:'#0F7C3B' }}>Strength</div>
+                <div className="text-sm text-gray-800 mt-1">{f.strength}</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ background:'#FFF4E0', border:'1px solid #F8DDA8' }}>
+                <div className="text-[11px] uppercase tracking-wide font-semibold" style={{ color:'#9A5A00' }}>Improvement</div>
+                <div className="text-sm text-gray-800 mt-1">{f.improvement}</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ background:'rgba(0,184,160,.08)', border:'1px solid #B9E6DE' }}>
+                <div className="text-[11px] uppercase tracking-wide font-semibold hm-dark-text">Action</div>
+                <div className="text-sm text-gray-800 mt-1">{f.action}</div>
+              </div>
+            </div>
+          ); })()}
+          {mod === 'difficult' && (() => { const d = aiDifficultConversation(emp); return (
+            <div className="fade-in space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-gray-700">Conversation Script — {d.topic}</div>
+                <span className="text-[11px] text-gray-500">6 steps · ~20 min</span>
+              </div>
+              <ol className="space-y-2">
+                {d.steps.map((s,i)=>(
+                  <li key={i} className="flex gap-3 bg-white border border-gray-100 rounded-lg p-3">
+                    <div className="w-6 h-6 rounded-full text-white text-xs font-semibold flex items-center justify-center shrink-0" style={{ background:'var(--hm-teal)' }}>{i+1}</div>
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wide hm-dark-text">{s.label}</div>
+                      <div className="text-sm text-gray-800 mt-0.5">{s.body}</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ); })()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// INTEGRATIONS
+// ============================================================
+const CONNECTORS = [
+  { id:'jira',    name:'Jira',              desc:'Pull ticket WIP, blocked items, cycle time',           connected:true,  initial:'J',  color:'bg-blue-600',   category:'Project Management' },
+  { id:'slack',   name:'Slack',             desc:'Detect after-hours activity, read recognition emoji',  connected:true,  initial:'S',  color:'bg-purple-600', category:'Communication' },
+  { id:'outlook', name:'Microsoft Outlook', desc:'Meeting load, calendar density, 1:1 cadence',          connected:true,  initial:'O',  color:'bg-sky-600',    category:'Calendar' },
+  { id:'asana',   name:'Asana',             desc:'Task assignments and strategic-vs-tactical tagging',   connected:false, initial:'A',  color:'bg-rose-500',   category:'Project Management' },
+  { id:'teams',   name:'Microsoft Teams',   desc:'Message volume, meeting overlap, sentiment signals',   connected:false, initial:'T',  color:'bg-indigo-600', category:'Communication' },
+  { id:'gcal',    name:'Google Calendar',   desc:'Secondary calendar source for mixed-org teams',        connected:false, initial:'G',  color:'bg-red-500',    category:'Calendar' },
+  { id:'github',  name:'GitHub',            desc:'Engineering WIP — PRs open, review load, churn',       connected:false, initial:'G',  color:'bg-gray-800',   category:'Engineering' },
+  { id:'workday', name:'Workday',           desc:'Org structure, tenure, role progression',              connected:false, initial:'W',  color:'bg-orange-600', category:'HR' },
+  { id:'fifteen', name:'15Five',            desc:'Pulse survey results and self-reported sentiment',     connected:false, initial:'15', color:'bg-emerald-600',category:'HR' },
+];
+
+const Integrations = ({ demoAction }) => {
+  const connected = CONNECTORS.filter(c=>c.connected).length;
+  const [modal, setModal] = useState(null);
+  return (
+    <div className="fade-in space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="card card-shadow p-4">
+          <div className="text-xs text-gray-500 uppercase font-semibold">Connected</div>
+          <div className="serif text-2xl font-bold hm-dark-text mt-1">{connected} <span className="text-sm font-medium text-gray-500">/ {CONNECTORS.length}</span></div>
+          <div className="text-xs text-gray-500 mt-1">Data sources feeding HEART Metrics</div>
+        </div>
+        <div className="card card-shadow p-4">
+          <div className="text-xs text-gray-500 uppercase font-semibold">Last Sync</div>
+          <div className="serif text-2xl font-bold hm-dark-text mt-1">7 min ago</div>
+          <div className="text-xs mt-1 flex items-center gap-1" style={{ color:'var(--hm-green)' }}><span className="w-2 h-2 rounded-full inline-block" style={{ background:'var(--hm-green)' }}></span>All connectors healthy</div>
+        </div>
+        <div className="card card-shadow p-4">
+          <div className="text-xs text-gray-500 uppercase font-semibold">Data Coverage</div>
+          <div className="serif text-2xl font-bold hm-dark-text mt-1">83%</div>
+          <div className="text-xs text-gray-500 mt-1">Connect 2 more to reach 100%</div>
+        </div>
+      </div>
+      <div className="card card-shadow p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="serif text-lg font-semibold hm-dark-text">Available Integrations</h2>
+            <p className="text-sm text-gray-500">Connect the tools your team already uses — HEART Metrics stays passive.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {CONNECTORS.map(c => (
+            <div key={c.id} className="rounded-xl border p-4 transition"
+              style={c.connected ? { borderColor:'#B9E6DE', background:'rgba(0,184,160,.06)' } : { borderColor:'#E3EAEA', background:'#fff' }}>
+              <div className="flex items-start gap-3">
+                <div className={`${c.color} w-11 h-11 rounded-lg flex items-center justify-center text-white font-bold shrink-0`}>{c.initial}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-gray-900">{c.name}</div>
+                    {c.connected
+                      ? <span className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5" style={{ background:'rgba(0,184,160,.15)', color:'var(--hm-dark)' }}><span className="w-1.5 h-1.5 rounded-full" style={{ background:'var(--hm-teal)' }}></span>Connected</span>
+                      : <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-full px-2 py-0.5">Not Connected</span>}
+                  </div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">{c.category}</div>
+                  <div className="text-sm text-gray-700 mt-2 leading-snug">{c.desc}</div>
+                  <div className="mt-3 flex gap-2">
+                    {c.connected ? (
+                      <>
+                        <button onClick={()=>setModal(c)} className="text-xs font-medium text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">Configure</button>
+                        <button className="text-xs font-medium text-gray-500 hover:text-gray-700 px-2 py-1.5">Disconnect</button>
+                      </>
+                    ) : (
+                      <button onClick={()=>setModal(c)} className="text-xs font-medium text-white rounded-lg px-3 py-1.5 hover:opacity-90" style={{ background:'var(--hm-teal)' }}>Connect</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 p-4" onClick={()=>setModal(null)}>
+          <div className="bg-white rounded-2xl card-shadow-lg max-w-md w-full p-6 fade-in" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <div className={`${modal.color} w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold`}>{modal.initial}</div>
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 uppercase font-semibold">{modal.category}</div>
+                <div className="serif text-lg font-semibold hm-dark-text">{modal.name}</div>
+              </div>
+              <button onClick={()=>setModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mt-3">{modal.desc}</p>
+            <div className="mt-4 bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
+              <div className="font-semibold text-gray-800 mb-1">Permissions requested</div>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>Read-only access to team activity</li>
+                <li>No direct messaging on behalf of users</li>
+                <li>Data processed in-region (US-East)</li>
+              </ul>
+            </div>
+            <div className="mt-4 flex gap-2 justify-end">
+              <button onClick={()=>setModal(null)} className="text-sm font-medium text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100">Cancel</button>
+              <button onClick={()=>{ setModal(null); demoAction && demoAction(); }} className="text-sm font-medium text-white px-4 py-2 rounded-lg hover:opacity-90" style={{ background:'var(--hm-teal)' }}>{modal.connected?'Save Changes':'Authorize'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// EMPLOYEE DETAIL MODAL — new format
+// ============================================================
+const EmployeeModal = ({ employee, onClose, demoAction }) => {
+  if (!employee) return null;
+  const m = fmtMetrics(employee);
+  const ai = getAIAction(employee);
+
+  const Row = ({ label, metric }) => (
+    <div className="metric-row flex items-center justify-between py-3">
+      <span className="text-gray-600 text-[15px]" style={{ fontFamily:'Calibri, Segoe UI, sans-serif' }}>{label}</span>
+      <span className="font-semibold text-[15px]" style={{ color: toneHex[metric.tone] }}>{metric.label}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl md:rounded-2xl card-shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto fade-in" onClick={e=>e.stopPropagation()}>
+        <div className="sticky top-0 px-5 md:px-6 py-4 md:py-5" style={{ background:'#FFF0EA' }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`${employee.color} w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shrink-0`}>{employee.avatar}</div>
+              <div className="min-w-0">
+                <div className="serif text-xl md:text-2xl font-bold hm-dark-text truncate">{employee.name} <span className="font-normal text-gray-500"> — {employee.role}</span></div>
+                <div className="text-xs text-gray-500 truncate">{employee.team} · Manager: {employee.manager}</div>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-3xl leading-none w-11 h-11 flex items-center justify-center -mr-2 -mt-1 shrink-0" aria-label="Close">×</button>
+          </div>
+        </div>
+
+        <div className="px-5 md:px-6 py-2">
+          <Row label="Workload"      metric={m.workload}/>
+          <Row label="Blocked Items" metric={m.blocked}/>
+          <Row label="Meeting Load"  metric={m.meeting}/>
+          <Row label="Recognition"   metric={m.recognition}/>
+          <Row label="Growth"        metric={m.growth}/>
+        </div>
+
+        <div className="px-5 md:px-6 pb-5 md:pb-6 pt-3">
+          <button onClick={demoAction} className="w-full text-left rounded-xl p-4 text-white font-semibold text-[15px] flex items-start gap-2 hover:opacity-95 transition cursor-pointer" style={{ background:'#0C4A4E', boxShadow:'0 0 0 3px rgba(0,184,160,.25)' }}>
+            <span style={{ color:'var(--hm-amber)' }}>✨</span>
+            <span className="flex-1"><span className="hm-teal-text">AI:</span> {ai}</span>
+            <span className="text-[11px] font-normal text-white/60 shrink-0">Tap to run</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// LAYOUT SHELL
+// ============================================================
+const Sidebar = ({ tab, setTab, mobileOpen, setMobileOpen }) => {
+  const groups = [
+    { label:'Main', items:[
+      { id:'dashboard',   label:'Overview',    icon:'📊' },
+      { id:'team',        label:'My Team',     icon:'👥' },
+      { id:'actions',     label:'Actions',     icon:'⚡' },
+    ]},
+    { label:'Coaching', items:[
+      { id:'ai',          label:'AI Coaching', icon:'🤖' },
+    ]},
+    { label:'Setup', items:[
+      { id:'integrations',label:'Integrations',icon:'🔌' },
+      { id:'data',        label:'Data Sources',icon:'🗂',  disabled:true },
+      { id:'settings',    label:'Settings',    icon:'⚙️',  disabled:true },
+    ]},
+  ];
+  const handleTab = (id) => { setTab(id); setMobileOpen(false); };
+  return (
+    <>
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setMobileOpen(false)}/>}
+      <aside className={`sidebar-base ${mobileOpen ? 'sidebar-open' : 'sidebar-closed'} hm-dark text-white w-60 md:w-64 shrink-0 flex flex-col z-40`}>
+        <div className="pl-2 pr-2 py-3 border-b border-white/10 flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1 min-w-0">
+            <div className="shrink-0"><HeartLogo size={70}/></div>
+            <div className="min-w-0">
+              <div className="serif font-bold text-lg leading-tight whitespace-nowrap">HEART Metrics</div>
+              <div className="text-[11px] text-white/60 leading-tight mt-0.5">Work Wellbeing Platform</div>
+            </div>
+          </div>
+          <button onClick={()=>setMobileOpen(false)} className="md:hidden text-white/70 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0" aria-label="Close menu">×</button>
+        </div>
+        <nav className="flex-1 py-4 overflow-y-auto">
+          {groups.map(g => (
+            <div key={g.label} className="mb-4">
+              <div className="px-5 text-[10px] uppercase tracking-[.15em] text-white/50 font-semibold mb-2">{g.label}</div>
+              {g.items.map(item => {
+                const active = tab === item.id;
+                return (
+                  <button key={item.id} disabled={item.disabled} onClick={()=>!item.disabled && handleTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-5 py-3 text-[14px] border-l-2 transition ${active?'sidebar-item active font-semibold':'border-transparent text-white/75 hover:bg-white/5 hover:text-white'} ${item.disabled?'opacity-40 cursor-not-allowed':''}`}>
+                    <span className="text-base">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.disabled && <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-white/10">soon</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        <div className="px-5 py-4 border-t border-white/10 text-[11px] text-white/50">
+          Prototype build · v2
+        </div>
+      </aside>
+    </>
+  );
+};
+
+const TopBar = ({ tabLabel, onOpenMenu }) => (
+  <header className="card-shadow bg-white border-b border-gray-100 sticky top-0 z-10">
+    <div className="flex items-center justify-between px-4 md:px-8 py-3 gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button onClick={onOpenMenu} className="md:hidden w-11 h-11 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center shrink-0" aria-label="Open menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0C4A4E" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className="md:hidden shrink-0" style={{ background:'var(--hm-dark)', borderRadius:8, padding:5 }}>
+          <HeartLogo size={32}/>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] text-gray-400 uppercase tracking-wide hidden md:block">Manager View</div>
+          <div className="serif text-base md:text-lg font-semibold hm-dark-text truncate">{tabLabel}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <a href="/" className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 px-2" style={{ textDecoration:'none' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to home
+        </a>
+        <div className="relative hidden lg:block">
+          <input placeholder="Find people and teams" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200 w-64"/>
+        </div>
+        <button className="relative w-11 h-11 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center" aria-label="Notifications">🔔
+          <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-semibold text-white flex items-center justify-center" style={{ background:'var(--hm-red)' }}>4</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold" style={{ background:'var(--hm-dark)' }}>AM</div>
+          <div className="hidden lg:block leading-tight">
+            <div className="text-sm font-semibold hm-dark-text">Alex Morgan</div>
+            <div className="text-[11px] text-gray-500">Engineering Manager</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+);
+
+// ============================================================
+// APP
+// ============================================================
+const App = () => {
+  const [tab, setTab] = useState('dashboard');
+  const [selected, setSelected] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => {
+    setToast(msg || DEMO_TOAST_MSG);
+    clearTimeout(window.__hmToastT);
+    window.__hmToastT = setTimeout(() => setToast(null), 4500);
+  };
+  const demoAction = () => showToast();
+  useEffect(() => {
+    document.body.classList.toggle('menu-open', mobileOpen);
+    return () => document.body.classList.remove('menu-open');
+  }, [mobileOpen]);
+  const tabLabels = {
+    dashboard:'Overview · Dashboard',
+    team:'My Team',
+    actions:'Action Queue',
+    ai:'AI Coaching',
+    integrations:'Integrations',
+  };
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar tab={tab} setTab={setTab} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}/>
+      <div className="flex-1 min-w-0">
+        <TopBar tabLabel={tabLabels[tab] || 'HEART Metrics'} onOpenMenu={()=>setMobileOpen(true)}/>
+        <main className="px-4 md:px-8 py-4 md:py-6 max-w-[1400px] mx-auto">
+          {tab === 'dashboard'    && <Dashboard onSelectEmployee={setSelected} onGoToActions={()=>setTab('actions')} demoAction={demoAction}/>}
+          {tab === 'team'         && <Team onSelectEmployee={setSelected} demoAction={demoAction}/>}
+          {tab === 'actions'      && <Actions onSelectEmployee={setSelected} demoAction={demoAction}/>}
+          {tab === 'ai'           && <AICoaching demoAction={demoAction}/>}
+          {tab === 'integrations' && <Integrations demoAction={demoAction}/>}
+        </main>
+        <footer className="px-4 md:px-8 py-6 text-center text-[11px] md:text-xs text-gray-400">
+          HEART Metrics · Demo build · Synthetic data for illustration only
+        </footer>
+      </div>
+      <EmployeeModal employee={selected} onClose={()=>setSelected(null)} demoAction={demoAction}/>
+      <Toast message={toast} onClose={()=>setToast(null)}/>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
